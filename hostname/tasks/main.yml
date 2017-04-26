@@ -1,0 +1,5 @@
+---
+- name: 'set hostname: {{ hostname }}'
+  become: true
+  hostname:
+    name: '{{ hostname }}'
