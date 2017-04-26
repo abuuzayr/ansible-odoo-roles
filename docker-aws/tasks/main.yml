@@ -1,0 +1,32 @@
+---
+- name: 'generate aws config to /tmp'
+  become: true
+  template:
+    src: '{{ item }}.j2'
+    dest: '/tmp/aws.{{ item }}'
+    owner: root
+    group: root
+    mode: '0600'
+  with_items:
+    - credentials
+    - config
+
+- name: 'copy {% raw %}{credentials,config}{% endraw %}'
+  become: true
+  command: >
+    docker run -i --rm
+    --volume /tmp:/src:rw,Z
+    --volume {{ docker_aws_config_volume }}:/dest:rw,Z
+    busybox install -m0600 -o root -g root /src/aws.{{ item }} /dest/{{ item }}
+  with_items:
+    - credentials
+    - config
+
+- name: 'remove aws config from /tmp'
+  become: true
+  file:
+    path: '/tmp/aws.{{ item }}'
+    state: absent
+  with_items:
+    - credentials
+    - config

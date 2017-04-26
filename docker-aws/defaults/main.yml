@@ -1,0 +1,4 @@
+---
+docker_aws_image: 'cgswong/aws:latest'
+docker_aws_config_volume: aws-config
+docker_aws_config_dir: /root/.aws
