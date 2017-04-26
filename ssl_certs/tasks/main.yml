@@ -1,0 +1,14 @@
+---
+- name: 'create {{ ssl_certs_dir }}'
+  become: true
+  file:
+    path: '{{ ssl_certs_dir }}'
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- include: 'tasks/includes/copy_ssl.yml'
+  loop_control:
+    loop_var: ssl_domain
+  with_items: '{{ ssl_certs_groups }}'

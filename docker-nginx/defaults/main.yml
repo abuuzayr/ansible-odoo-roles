@@ -1,0 +1,20 @@
+---
+docker_nginx_service: docker-nginx
+docker_nginx_image: 'nginx:latest'
+docker_nginx_network: nginx
+docker_nginx_container: nginx
+docker_nginx_http_port: 80
+docker_nginx_https_port: 443
+docker_nginx_config_volume: nginx-config
+docker_nginx_cpu_shares: 96
+docker_nginx_memory: 96m
+docker_nginx_memory_swap: 144m
+docker_nginx_certs_volume: nginx-certs
+docker_nginx_certs_dir: /etc/nginx/certs
+docker_nginx_config_dir: /etc/nginx/conf.d
+docker_nginx_certs: []
+docker_nginx_server_tokens: 'on'
+docker_nginx_proxy_read_timeout: 60s
+docker_nginx_client_max_body_size: 1m
+docker_nginx_state: stopped
+docker_nginx_enabled: false

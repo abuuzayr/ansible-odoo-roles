@@ -1,0 +1,60 @@
+[Unit]
+Description=Docker Odoo Service ({{ docker_odoo_profile }})
+Requires={{ docker_service }}.service \
+    {{ docker_odoo_postgresql_service }}.{{ docker_odoo_profile }}.service
+After=\
+    {{ docker_service }}.service \
+    {{ docker_odoo_postgresql_service }}.{{ docker_odoo_profile }}.service \
+    network.target
+
+[Service]
+ExecStartPre=-/usr/bin/docker stop '{{ docker_odoo_container }}.{{ docker_odoo_profile }}'
+ExecStartPre=-/usr/bin/docker rm '{{ docker_odoo_container }}.{{ docker_odoo_profile }}'
+ExecStartPre=-/usr/bin/docker pull '{{ docker_odoo_image }}'
+ExecStart=\
+/usr/bin/docker run \
+    --name '{{ docker_odoo_container }}.{{ docker_odoo_profile }}' \
+{% if docker_odoo_hostname is defined and docker_odoo_hostname %}
+    --hostname '{{ docker_odoo_hostname }}' \
+{% else %}
+    --hostname '{{ docker_odoo_profile }}.{{ docker_odoo_base_domain }}' \
+{% endif %}
+    --expose '{{ docker_odoo_virtual_port }}' \
+    --net '{{ docker_odoo_network }}.{{ docker_odoo_profile }}' \
+    --env-file '/{{ docker_env_dir }}/{{ docker_odoo_container }}.{{ docker_odoo_profile }}.env' \
+    --link '{{ docker_odoo_postgresql_container }}.{{ docker_odoo_profile }}:postgres' \
+    --volume '{{ docker_odoo_data_volume }}.{{ docker_odoo_profile }}:/var/lib/odoo:rw,Z' \
+    --volume '/{{ docker_volumes_dir }}/{{ docker_odoo_container }}.{{ docker_odoo_profile }}/host:/host:rw,Z' \
+    --cpu-shares '{{ docker_odoo_cpu_shares }}' \
+    --memory '{{ docker_odoo_memory }}' \
+    --memory '{{ docker_odoo_memory_swap }}' \
+    '{{ docker_odoo_image }}' \
+        /odoo serve --single \
+{% if docker_odoo_demo is defined and docker_odoo_demo %}
+        --demo \
+{% endif %}
+        -- \
+{% if docker_odoo_proxy_mode is defined and docker_odoo_proxy_mode %}
+        --proxy-mode \
+{% endif %}
+        --xmlrpc-port '{{ docker_odoo_virtual_port }}' \
+        --workers 0 \
+        --limit-memory-soft '{{ docker_odoo_limit_memory_soft }}' \
+        --limit-memory-hard '{{ docker_odoo_limit_memory_hard }}' \
+        --max-cron-threads 1
+
+ExecStartPost=\
+/bin/bash -c 'sleep 3'
+
+ExecStartPost=\
+/usr/bin/docker network connect '{{ docker_nginx_network }}' '{{ docker_odoo_network }}.{{ docker_odoo_profile }}'
+
+ExecStop=\
+/usr/bin/docker network disconnect '{{ docker_nginx_network }}' '{{ docker_odoo_network }}.{{ docker_odoo_profile }}'
+
+TimeoutStartSec=0
+Restart=always
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target

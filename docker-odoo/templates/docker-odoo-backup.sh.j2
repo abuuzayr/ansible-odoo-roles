@@ -1,0 +1,112 @@
+# vim:set fenc=utf-8 ff=unix ft=sh:
+
+set -e
+set -x
+
+function check_bin {
+  if [[ -z "$1" ]]; then
+    echo 'check_bin: $1 is not defined' >&2
+    exit 1
+  fi
+
+  if [[ -z "$(which "$1" 2>/dev/null)" ]]; then
+    echo 'command "'"$1"'" does not exist in $PATH' >&2
+    exit 1
+  fi
+}
+
+# Check for existence of required binaries.
+check_bin date
+check_bin docker
+check_bin mktemp
+check_bin xz
+
+# Set time format
+tmfmt='+%Y%m%d-%Z%H%M'
+
+# Exit if I'm not root.
+if [[ "$EUID" != 0 ]]; then
+  echo 'This script must be executed as root.' >&2
+  exit 1
+fi
+
+set +e
+systemctl stop '{{ docker_odoo_service }}.{{ docker_odoo_profile }}'
+sleep 1
+docker rm '{{ docker_odoo_backup_container }}.{{ docker_odoo_profile }}'
+set -e
+
+tmp_vol="$(docker volume create)"
+
+fdump_fpath="$(docker run -i --rm \
+  --name '{{ docker_odoo_backup_container }}.{{ docker_odoo_profile }}' \
+  --volume "${tmp_vol}:/{{ docker_tmp_dir }}:rw,Z" \
+  --entrypoint '/bin/ash' \
+  hellyna/tar -c 'mktemp -p /{{ docker_tmp_dir }}' \
+)"
+
+docker run -i --rm \
+  --name '{{ docker_odoo_backup_container }}.{{ docker_odoo_profile }}' \
+  --volume '{{ docker_odoo_data_volume }}.{{ docker_odoo_profile }}:/var/lib/odoo:ro,Z' \
+  --volume "${tmp_vol}:/{{ docker_tmp_dir }}:rw,Z" \
+  hellyna/tar \
+    -cvJp \
+    --exclude 'var/lib/odoo/.cache' \
+    -f "$fdump_fpath" \
+    -C / \
+    var/lib/odoo
+
+fdump_fname="{{ docker_odoo_service }}.{{ docker_odoo_profile }}.$(date "$tmfmt").tar.xz"
+
+docker run -i --rm \
+  --name '{{ docker_odoo_backup_container }}.{{ docker_odoo_profile }}' \
+  --volume '{{ docker_aws_config_volume }}:/root/.aws:ro,Z' \
+  --volume "${tmp_vol}:/{{ docker_tmp_dir }}:rw,Z" \
+  --entrypoint aws \
+  '{{ docker_aws_image }}' s3 cp \
+{% if docker_odoo_backup_s3_encrypted %}
+    --sse \
+{% endif %}
+    --storage-class '{{ docker_odoo_backup_s3_storage_class }}' \
+      "$fdump_fpath" "{{ docker_odoo_backup_s3_bucket }}/{{ docker_odoo_profile }}/$fdump_fname"
+
+docker volume rm "$tmp_vol"
+tmp_vol="$(docker volume create)"
+
+# Start backup database.
+pgdump_fpath="$(docker run -i --rm \
+  --name '{{ docker_odoo_backup_container }}.{{ docker_odoo_profile }}' \
+  --volume "${tmp_vol}:/{{ docker_tmp_dir }}:rw,Z" \
+  --entrypoint '/bin/ash' \
+  hellyna/tar -c 'mktemp -p /{{ docker_tmp_dir }}' \
+)"
+
+docker exec '{{ docker_odoo_postgresql_container }}.{{ docker_odoo_profile }}' \
+  pg_dump --no-owner --clean -d odoo -U odoo | \
+    docker run -i --rm \
+      --name '{{ docker_odoo_backup_container }}.{{ docker_odoo_profile }}' \
+      --volume "${tmp_vol}:/{{ docker_tmp_dir }}:rw,Z" \
+      --entrypoint '/bin/ash' \
+      hellyna/tar -c "xz > '$pgdump_fpath'"
+
+pgdump_fname="{{ docker_odoo_postgresql_service }}.{{ docker_odoo_profile }}.$(date "$tmfmt").sql.xz"
+
+docker run -i --rm \
+  --name "{{ docker_odoo_backup_container }}.{{ docker_odoo_profile }}" \
+  --volume '{{ docker_aws_config_volume }}:/root/.aws:ro,Z' \
+  --volume "${tmp_vol}:/{{ docker_tmp_dir }}:rw,Z" \
+  --entrypoint aws \
+  '{{ docker_aws_image }}' s3 cp \
+{% if docker_odoo_backup_s3_encrypted %}
+    --sse \
+{% endif %}
+    --storage-class '{{ docker_odoo_backup_s3_storage_class }}' \
+      "$pgdump_fpath" "{{ docker_odoo_backup_s3_bucket }}/{{ docker_odoo_profile }}/$pgdump_fname"
+
+docker volume rm "$tmp_vol"
+
+# Start service if it is originally up.
+if [[ "$(systemctl is-enabled '{{ docker_odoo_service }}.{{ docker_odoo_profile }}')" == 'enabled' ]]; then
+  systemctl start '{{ docker_odoo_service }}.{{ docker_odoo_profile }}'
+fi
+

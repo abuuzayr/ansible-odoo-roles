@@ -1,0 +1,13 @@
+---
+docker_nginx_gen_service: docker-nginx-gen
+docker_nginx_gen_image: 'jwilder/docker-gen'
+docker_nginx_gen_container: nginx-gen
+docker_nginx_gen_output_path: /etc/nginx/conf.d/default.conf
+docker_nginx_gen_template_dir: /etc/docker-gen/templates
+docker_nginx_gen_template_volume: nginx-gen-template
+docker_nginx_gen_args: '-watch -wait 7s'
+docker_nginx_gen_cpu_shares: 32
+docker_nginx_gen_memory: 32m
+docker_nginx_gen_memory_swap: 48m
+docker_nginx_gen_state: stopped
+docker_nginx_gen_enabled: false

@@ -1,0 +1,13 @@
+---
+
+docker_daemon_args: '-H fd:// -s overlay2'
+docker_opts: >
+  -H fd://
+  --storage-driver=overlay2
+  --graph=/var/lib/docker
+docker_service: 'docker'
+docker_socket: '/var/run/docker.sock'
+docker_volumes_dir: '/srv/docker/volumes'
+docker_shared_volumes_dir: '/srv/docker/shared_volumes'
+docker_tmp_dir: '/srv/docker/tmp'
+docker_env_dir: '/srv/docker/env'

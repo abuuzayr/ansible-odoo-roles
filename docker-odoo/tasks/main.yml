@@ -1,0 +1,78 @@
+---
+
+- include: 'tasks/includes/create-docker-network.yml'
+  vars:
+    network: '{{ docker_odoo_network }}.{{ docker_odoo_profile }}'
+
+
+- include: 'tasks/includes/create-docker-volume-dirs.yml'
+  vars:
+    docker_services:
+      - name: '{{ docker_odoo_container }}'
+        profile: '{{ docker_odoo_profile }}'
+
+      - name: '{{ docker_odoo_postgresql_container }}'
+        profile: '{{ docker_odoo_profile }}'
+
+      - name: '{{ docker_odoo_backup_container }}'
+        profile: '{{ docker_odoo_profile }}'
+
+
+- include: 'tasks/includes/generate-docker-env-files.yml'
+  vars:
+    docker_services:
+      - name: '{{ docker_odoo_container }}'
+        profile: '{{ docker_odoo_profile }}'
+
+      - name: '{{ docker_odoo_postgresql_container }}'
+        profile: '{{ docker_odoo_profile }}'
+
+
+- include: 'tasks/includes/generate-systemd-services.yml'
+  vars:
+    services:
+      - name: '{{ docker_odoo_service }}'
+        profile: '{{ docker_odoo_profile }}'
+
+      - name: '{{ docker_odoo_postgresql_service }}'
+        profile: '{{ docker_odoo_profile }}'
+
+      - name: '{{ docker_odoo_backup_service }}'
+        profile: '{{ docker_odoo_profile }}'
+
+
+- include: 'tasks/includes/generate-systemd-service-scripts.yml'
+  vars:
+    services:
+      - name: '{{ docker_odoo_backup_service }}'
+        profile: '{{ docker_odoo_profile }}'
+
+
+- include: 'tasks/includes/generate-systemd-timers.yml'
+  vars:
+    timers:
+      - name: '{{ docker_odoo_daily_backup_timer }}'
+        profile: '{{ docker_odoo_profile }}'
+
+
+- include: 'tasks/includes/set-systemd-units-states.yml'
+  vars:
+    units_states:
+      - unit: '{{ docker_odoo_postgresql_service }}.{{ docker_odoo_profile }}.service'
+        state: '{{ docker_odoo_state }}'
+      - unit: '{{ docker_odoo_service }}.{{ docker_odoo_profile }}.service'
+        state: '{{ docker_odoo_state }}'
+      - unit: '{{ docker_odoo_daily_backup_timer }}.{{ docker_odoo_profile }}.timer'
+        state: '{{ docker_odoo_daily_backup_timer_state }}'
+
+
+- include: 'tasks/includes/set-systemd-unit-enabled-disabled.yml'
+  vars:
+    unit: '{{ docker_odoo_service }}.{{ docker_odoo_profile }}.service'
+    enabled: '{{ docker_odoo_enabled }}'
+
+
+- include: 'tasks/includes/set-systemd-unit-enabled-disabled.yml'
+  vars:
+    unit: '{{ docker_odoo_daily_backup_timer }}.{{ docker_odoo_profile }}.timer'
+    enabled: '{{ docker_odoo_daily_backup_timer_enabled }}'

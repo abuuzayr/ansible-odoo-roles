@@ -1,0 +1,31 @@
+[Unit]
+Description=Docker Nginx Configuration Generator
+Requires=docker.service {{ docker_nginx_service }}.service
+After=network.target docker.service {{ docker_nginx_service }}.service
+
+[Service]
+ExecStartPre=-/usr/bin/docker stop '{{ docker_nginx_gen_container }}'
+ExecStartPre=-/usr/bin/docker rm '{{ docker_nginx_gen_container }}'
+ExecStartPre=-/usr/bin/docker pull '{{ docker_nginx_gen_image }}'
+ExecStart=/usr/bin/docker run \
+            --name '{{ docker_nginx_gen_container }}' \
+            --network '{{ docker_nginx_network }}' \
+            --volume '{{ docker_nginx_gen_template_volume }}:{{ docker_nginx_gen_template_dir }}:ro,Z' \
+            --volume '{{ docker_nginx_config_volume }}:/{{ docker_nginx_config_dir }}:rw,z' \
+            --volume '/{{ docker_socket }}:/tmp/docker.sock:ro,z' \
+            --volumes-from '{{ docker_nginx_container }}' \
+            --cpu-shares '{{ docker_nginx_gen_cpu_shares }}' \
+            --memory '{{ docker_nginx_gen_memory }}' \
+            --memory-swap '{{ docker_nginx_gen_memory_swap }}' \
+            '{{ docker_nginx_gen_image }}' \
+              -notify-sighup '{{ docker_nginx_container }}' \
+              {{ docker_nginx_gen_args }} \
+              '/{{ docker_nginx_gen_template_dir }}/nginx.tmpl' \
+              '{{ docker_nginx_gen_output_path }}'
+TimeoutStartSec=0
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+

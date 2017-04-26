@@ -1,0 +1,67 @@
+---
+- include: 'tasks/includes/create-docker-network.yml'
+  vars:
+    network: '{{ docker_nginx_network }}'
+
+
+- include: 'tasks/includes/create-docker-volume-dirs.yml'
+  vars:
+    docker_services:
+      - name: '{{ docker_nginx_container }}'
+
+
+- include: 'tasks/includes/generate-systemd-services.yml'
+  vars:
+    services:
+      - name: '{{ docker_nginx_service }}'
+
+
+- include: 'tasks/includes/copy_ssl.yml'
+  loop_control:
+    loop_var: cert_group
+  with_items: '{{ docker_nginx_certs }}'
+
+
+- name: 'copy custom.conf into {{ docker_nginx_config_volume }}'
+  become: true
+  template:
+    src: custom.conf.j2
+    dest: /tmp/custom.conf
+
+
+- name: 'copy custom.conf'
+  become: true
+  command: >
+    docker run -i --rm
+    --volume /tmp:/src:rw,Z
+    --volume {{ docker_nginx_config_volume }}:/dest:rw,Z
+    busybox install -m0644 /src/custom.conf /dest
+
+
+- name: 'remove custom.conf into {{ docker_nginx_config_volume }}'
+  become: true
+  file:
+    path: /tmp/custom.conf
+    state: absent
+
+
+- name: concat ssl ca-bundles into crt
+  become: true
+  command: >
+    docker run -i --rm
+      --volume {{ docker_nginx_certs_volume}}:/{{ docker_nginx_certs_dir }}:rw,Z
+      busybox ash -c "set -e; cd '/{{ docker_nginx_certs_dir }}'; cat '{{ item }}.ca-bundle' >> '{{ item }}.crt'; rm -f '{{ item }}.ca-bundle'"
+  with_items: '{{ docker_nginx_certs }}'
+
+
+- include: 'tasks/includes/set-systemd-units-states.yml'
+  vars:
+    units_states:
+      - unit: '{{ docker_nginx_service }}.service'
+        state: '{{ docker_nginx_state }}'
+
+
+- include: 'tasks/includes/set-systemd-unit-enabled-disabled.yml'
+  vars:
+    unit: '{{ docker_nginx_service }}.service'
+    enabled: '{{ docker_nginx_enabled }}'

@@ -1,0 +1,8 @@
+---
+
+dependencies:
+  - role: systemd
+  - role: docker
+  - role: docker-auth
+  - role: docker-nginx
+  - role: docker-nginx-gen

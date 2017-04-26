@@ -1,0 +1,40 @@
+---
+
+#docker_odoo_image: 'docker.example.com:port/odoo:tag'
+#docker_odoo_cert_name: gronex.com.sg
+#docker_odoo_base_domain: domain.example.com
+#docker_odoo_backup_s3_bucket: 's3://bucket-name/'
+docker_odoo_virtual_port: '8069'
+docker_odoo_proxy_mode: true
+docker_odoo_state: stopped
+docker_odoo_enabled: false
+docker_odoo_network: odoo
+
+docker_odoo_service: docker-odoo
+docker_odoo_container: odoo
+docker_odoo_data_volume: odoo-data
+docker_odoo_cpu_shares: 96
+docker_odoo_memory: 333m
+docker_odoo_memory_swap: 666m
+docker_odoo_limit_memory_soft: 185127901
+docker_odoo_limit_memory_hard: 231409877
+
+docker_odoo_demo: false
+
+docker_odoo_postgresql_service: docker-odoo-postgresql
+docker_odoo_postgresql_container: odoo-postgresql
+docker_odoo_postgresql_data_volume: odoo-postgresql-data
+docker_odoo_postgresql_image: 'postgres:9.6'
+docker_odoo_postgresql_cpu_shares: 96
+docker_odoo_postgresql_memory: 256m
+docker_odoo_postgresql_memory_swap: 512m
+docker_odoo_postgresql_user: odoo
+
+docker_odoo_backup_service: docker-odoo-backup
+docker_odoo_backup_container: odoo-backup
+docker_odoo_backup_s3_storage_class: 'STANDARD_IA'
+docker_odoo_backup_s3_encrypted: true
+
+docker_odoo_daily_backup_timer: docker-odoo-daily-backup
+docker_odoo_daily_backup_timer_state: stopped
+docker_odoo_daily_backup_timer_enabled: false

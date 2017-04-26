@@ -1,0 +1,4 @@
+[submodule "ssl_certs/files"]
+	path = ssl_certs/files
+	url = git@git.groventure.com:smecen/test-certs.git
+	branch = master

@@ -1,0 +1,10 @@
+[Unit]
+Description=Odoo Backup Service ({{ docker_odoo_profile }})
+Requires={{ docker_odoo_postgresql_service }}.{{ docker_odoo_profile }}.service
+After={{ docker_odoo_postgresql_service }}.{{ docker_odoo_profile }}.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /{{ systemd_scripts_dir }}/{{ docker_odoo_backup_service }}.{{ docker_odoo_profile }}.sh
+
+TimeoutStartSec=0

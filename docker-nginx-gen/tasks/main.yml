@@ -1,0 +1,52 @@
+---
+
+- include: 'tasks/includes/create-docker-volume-dirs.yml'
+  vars:
+    docker_services:
+      - name: '{{ docker_nginx_gen_container }}'
+
+
+- include: 'tasks/includes/generate-systemd-services.yml'
+  vars:
+    services:
+      - name: '{{ docker_nginx_gen_service }}'
+
+
+- name: 'copy nginx.tmpl to tmpdir'
+  become: true
+  copy:
+    src: nginx.tmpl
+    dest: /tmp/nginx.tmpl
+
+
+- name: 'copy nginx.tmpl'
+  become: true
+  command: >
+    docker run -i --rm
+    --volume /tmp:/src:rw,Z
+    --volume {{ docker_nginx_gen_template_volume }}:/{{ docker_nginx_gen_template_dir }}:rw,Z
+    busybox install -m0644 /src/nginx.tmpl /{{ docker_nginx_gen_template_dir }}
+  with_items:
+    - ca-bundle
+    - crt
+    - key
+
+
+- name: 'remove nginx.tmpl from tmpdir'
+  become: true
+  file:
+    path: /tmp/nginx.tmpl
+    state: absent
+
+
+- include: 'tasks/includes/set-systemd-units-states.yml'
+  vars:
+    units_states:
+      - unit: '{{ docker_nginx_gen_service }}.service'
+        state: '{{ docker_nginx_gen_state }}'
+
+
+- include: 'tasks/includes/set-systemd-unit-enabled-disabled.yml'
+  vars:
+    unit: '{{ docker_nginx_gen_service }}.service'
+    enabled: '{{ docker_nginx_gen_enabled }}'

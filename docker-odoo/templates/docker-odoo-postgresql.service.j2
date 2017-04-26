@@ -1,0 +1,27 @@
+[Unit]
+Description=Docker Odoo PostgreSQL Service ({{ docker_odoo_profile }})
+Requires={{ docker_service }}.service
+After={{ docker_service }}.service network.target
+
+[Service]
+ExecStartPre=-/usr/bin/docker stop '{{ docker_odoo_postgresql_container }}.{{ docker_odoo_profile }}'
+ExecStartPre=-/usr/bin/docker rm '{{ docker_odoo_postgresql_container }}.{{ docker_odoo_profile }}'
+ExecStartPre=-/usr/bin/docker pull '{{ docker_odoo_postgresql_image }}'
+ExecStart=\
+/usr/bin/docker run \
+    --name '{{ docker_odoo_postgresql_container }}.{{ docker_odoo_profile }}' \
+    --net '{{ docker_odoo_network }}.{{ docker_odoo_profile }}' \
+    --env-file '/{{ docker_env_dir }}/{{ docker_odoo_postgresql_container }}.{{ docker_odoo_profile }}.env' \
+    --volume '{{ docker_odoo_postgresql_data_volume }}.{{ docker_odoo_profile }}:/var/lib/postgresql/data:rw,Z' \
+    --volume '/{{ docker_volumes_dir }}/{{ docker_odoo_postgresql_container }}.{{ docker_odoo_profile }}/host:/host:rw,Z' \
+    --cpu-shares '{{ docker_odoo_postgresql_cpu_shares }}' \
+    --memory '{{ docker_odoo_postgresql_memory }}' \
+    --memory-swap '{{ docker_odoo_postgresql_memory_swap }}' \
+    '{{ docker_odoo_postgresql_image }}'
+
+TimeoutStartSec=0
+Restart=always
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target

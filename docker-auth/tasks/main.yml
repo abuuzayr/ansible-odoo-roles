@@ -1,0 +1,10 @@
+---
+- name: 'set up docker authentication information'
+  become: true
+  command: >
+    docker login
+    --username {{ item.username }}
+    --password {{ item.password }}
+    {{ item.host }}
+  with_items: '{{ docker_auth }}'
+  ignore_errors: yes

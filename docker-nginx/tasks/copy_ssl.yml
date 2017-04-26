@@ -1,0 +1,12 @@
+---
+- name: 'copy {{ cert_group }}.{% raw %}{ca-bundle,crt,key}{% endraw %}'
+  become: true
+  command: >
+    docker run -i --rm
+    --volume /{{ ssl_certs_dir }}:/src:rw,Z
+    --volume {{ docker_nginx_certs_volume }}:/dest:rw,Z
+    busybox install -m0644 /src/{{ cert_group }}.{{ item }} /dest
+  with_items:
+    - ca-bundle
+    - crt
+    - key

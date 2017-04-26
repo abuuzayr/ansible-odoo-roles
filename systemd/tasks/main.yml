@@ -1,0 +1,18 @@
+---
+- name: 'Create systemd_scripts_dir: {{ systemd_scripts_dir }}'
+  become: true
+  file:
+    path: '{{ systemd_scripts_dir }}'
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: 'Create systemd_env_dir: {{ systemd_env_dir }}'
+  become: true
+  file:
+    path: '{{ systemd_env_dir }}'
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'

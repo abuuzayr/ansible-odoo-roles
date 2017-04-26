@@ -1,0 +1,29 @@
+[Unit]
+Description=Docker Nginx Container
+Requires={{ docker_service }}.service
+After=network.target {{ docker_service }}.service
+
+[Service]
+ExecStartPre=-/usr/bin/docker stop '{{ docker_nginx_container }}'
+ExecStartPre=-/usr/bin/docker rm '{{ docker_nginx_container }}'
+ExecStartPre=-/usr/bin/docker pull '{{ docker_nginx_image }}'
+ExecStart=/usr/bin/docker run \
+            --name '{{ docker_nginx_container }}' \
+            --publish '{{ docker_nginx_http_port }}:80' \
+            --publish '{{ docker_nginx_https_port }}:443' \
+            --network '{{ docker_nginx_network }}' \
+            --volume '{{ docker_nginx_certs_volume }}:/{{ docker_nginx_certs_dir }}:ro,Z' \
+            --volume '{{ docker_nginx_config_volume }}:/{{ docker_nginx_config_dir }}:ro,z' \
+            --volume '/{{ docker_volumes_dir }}/{{ docker_nginx_container }}/host:/host:rw,Z' \
+            --cpu-shares '{{ docker_nginx_cpu_shares }}' \
+            --memory '{{ docker_nginx_memory }}' \
+            --memory-swap '{{ docker_nginx_memory_swap }}' \
+            '{{ docker_nginx_image }}'
+
+TimeoutStartSec=0
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+

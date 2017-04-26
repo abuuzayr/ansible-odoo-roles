@@ -1,0 +1,4 @@
+---
+systemd_units_dir: /etc/systemd/system
+systemd_env_dir: /etc/systemd/system/env
+systemd_scripts_dir: /etc/systemd/system/scripts

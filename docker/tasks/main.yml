@@ -1,0 +1,81 @@
+---
+
+- name: 'check if is ubuntu 16.04 xenial'
+  fail:
+    msg: 'host distribution is not ubuntu 16.04 xenial'
+  when: |
+    ansible_distribution != 'Ubuntu' or
+    ansible_distribution_release != 'xenial' or
+    ansible_distribution_version != '16.04'
+
+- name: Create necessary directories for our docker architecture.
+  become: true
+  file:
+    path: '{{ item }}'
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  with_items:
+    - '/{{ systemd_units_dir }}/{{ docker_service }}.service.d'
+    - '{{ docker_volumes_dir }}'
+    - '{{ docker_shared_volumes_dir }}'
+    - '{{ docker_env_dir }}'
+    - '{{ docker_tmp_dir }}'
+
+- name: 'copy overriding systemd config file for dockerd custom args'
+  become: true
+  template:
+    src: execstart.conf.j2
+    dest: '/{{ systemd_units_dir }}/{{ docker_service }}.service.d/execstart.conf'
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: apt-get install apt-transport-https
+  become: true
+  apt:
+    name: apt-transport-https
+    state: present
+    install_recommends: no
+
+- name: apt-get install ca-certificates
+  become: true
+  apt:
+    name: ca-certificates
+    state: present
+    install_recommends: no
+
+- name: add docker gpg key
+  become: true
+  apt_key:
+    keyserver: 'hkp://ha.pool.sks-keyservers.net:80'
+    id: 58118E89F3A912897C070ADBF76221572C52609D
+
+- name: add docker repository
+  become: true
+  apt_repository:
+    repo: 'deb https://apt.dockerproject.org/repo ubuntu-xenial main'
+    state: present
+    update_cache: yes
+
+- name: apt-get install docker-engine
+  become: true
+  apt:
+    name: docker-engine
+    state: present
+    install_recommends: no
+
+- name: stop and disable ufw
+  become: true
+  systemd:
+    name: ufw.service
+    enabled: no
+    state: stopped
+
+- name: start and enable docker.service
+  become: true
+  systemd:
+    name: docker.service
+    enabled: yes
+    state: started
